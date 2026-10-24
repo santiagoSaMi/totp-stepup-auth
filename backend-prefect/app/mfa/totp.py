@@ -104,7 +104,8 @@ def build_otpauth_uri(secret_b32: str, account_name: str, issuer: str) -> str:
 
     Format: otpauth://totp/{issuer}:{account}?secret=...&issuer=...&algorithm=SHA1&digits=6&period=30
     """
-    label = quote(f"{issuer}:{account_name}")
+    # Keep ":" and "@" literal, as in Google's Key URI examples ("Example:alice@google.com").
+    label = quote(f"{issuer}:{account_name}", safe=":@")
     params = urlencode(
         {
             "secret": secret_b32,
