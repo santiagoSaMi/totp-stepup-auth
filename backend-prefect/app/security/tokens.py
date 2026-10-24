@@ -36,6 +36,7 @@ class TokenClaims:
     mfa_verified: bool
     mfa_method: str | None
     expires_at: int
+    token_id: str  # jti
 
 
 def _encode(claims: dict, ttl_seconds: int) -> str:
@@ -67,7 +68,7 @@ def decode_token(token: str, expected_scope: TokenScope) -> TokenClaims:
             get_settings().jwt_secret,
             algorithms=[ALGORITHM],
             issuer=ISSUER,
-            options={"require": ["sub", "scope", "exp", "iat", "iss"]},
+            options={"require": ["sub", "scope", "exp", "iat", "iss", "jti"]},
         )
     except jwt.ExpiredSignatureError:
         raise InvalidToken("token expired") from None
@@ -84,4 +85,5 @@ def decode_token(token: str, expected_scope: TokenScope) -> TokenClaims:
         mfa_verified=bool(payload.get("mfa_verified", False)),
         mfa_method=payload.get("mfa_method"),
         expires_at=payload["exp"],
+        token_id=payload["jti"],
     )

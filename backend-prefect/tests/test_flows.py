@@ -5,11 +5,16 @@ import time
 import pytest
 from prefect.client.orchestration import get_client
 from prefect.client.schemas.filters import FlowRunFilter, FlowRunFilterId
-from prefect.testing.utilities import prefect_test_harness
 from pydantic import SecretStr
 
-from app import repositories
-from app.flows.errors import InvalidCredentials, InvalidPreAuthState, InvalidSecondFactor, ReplayAttackDetected
+from app.flows.errors import (
+    InvalidCredentials,
+    InvalidPreAuthState,
+    InvalidSecondFactor,
+    PreAuthTokenAlreadyUsed,
+    ReplayAttackDetected,
+    TooManyAttempts,
+)
 from app.flows.login_flow import login_flow
 from app.flows.provisioning_flow import activate_2fa_flow, enroll_2fa_flow
 from app.flows.verify_2fa_flow import verify_2fa_flow
@@ -19,24 +24,13 @@ from app.mfa.state import MFAStatus
 from app.mfa.strategies.base import MFAMethod
 from app.security import passwords, tokens
 from app.security.tokens import TokenScope
-from tests.fakes import FakeMFARepository, FakeUserRepository
 
 PASSWORD = "s3cret-password"
 
 
-@pytest.fixture(scope="module", autouse=True)
-def prefect_server():
-    with prefect_test_harness():
-        yield
-
-
 @pytest.fixture(autouse=True)
-def fake_repos(monkeypatch):
-    users, mfa = FakeUserRepository(), FakeMFARepository()
-    monkeypatch.setattr(repositories, "user_repository", lambda: users)
-    monkeypatch.setattr(repositories, "mfa_repository", lambda: mfa)
-    replay_cache.clear()
-    return users, mfa
+def _isolated(prefect_server, fake_repos):
+    pass
 
 
 @pytest.fixture
@@ -210,3 +204,39 @@ def test_access_token_cannot_be_used_as_pre_auth(alice):
     access = verify_2fa_flow(SecretStr(login()), SecretStr(totp.totp(secret, time.time() - 30))).access_token
     with pytest.raises(InvalidPreAuthState):
         verify_2fa_flow(SecretStr(access), SecretStr(totp.totp(secret, time.time() + 30)))
+
+
+# --- pre_auth_token limits ---
+
+
+def test_pre_auth_token_locks_after_5_failures(alice):
+    secret, _, _ = enroll_and_activate()
+    pre_auth = login()
+    valid = {totp.totp(secret, time.time() + d) for d in (-60, -30, 0, 30, 60)}
+    wrong = next(c for c in ("000000", "111111", "222222") if c not in valid)
+
+    for _ in range(5):
+        with pytest.raises(InvalidSecondFactor):
+            verify_2fa_flow(SecretStr(pre_auth), SecretStr(wrong))
+
+    # Even a correct code is refused now; the user must enter the password again.
+    with pytest.raises(TooManyAttempts):
+        verify_2fa_flow(SecretStr(pre_auth), SecretStr(totp.totp(secret, time.time() + 30)))
+
+    assert verify_2fa_flow(SecretStr(login()), SecretStr(totp.totp(secret, time.time() + 30))).access_token
+
+
+def test_pre_auth_token_is_single_use(alice):
+    secret, _, _ = enroll_and_activate()
+    pre_auth = login()
+    verify_2fa_flow(SecretStr(pre_auth), SecretStr(totp.totp(secret, time.time() - 30)))
+    with pytest.raises(PreAuthTokenAlreadyUsed):
+        verify_2fa_flow(SecretStr(pre_auth), SecretStr(totp.totp(secret, time.time() + 30)))
+
+
+def test_activation_consumes_the_pre_auth_token(alice):
+    pre_auth = login()
+    secret = enroll_2fa_flow(SecretStr(pre_auth)).secret_base32
+    activate_2fa_flow(SecretStr(pre_auth), SecretStr(totp.totp(secret)))
+    with pytest.raises(PreAuthTokenAlreadyUsed):
+        verify_2fa_flow(SecretStr(pre_auth), SecretStr(totp.totp(secret, time.time() + 30)))

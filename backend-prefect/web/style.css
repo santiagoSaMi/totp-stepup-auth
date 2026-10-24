@@ -1,0 +1,173 @@
+:root {
+  --bg: #f5f6f8;
+  --surface: #ffffff;
+  --text: #1c2230;
+  --muted: #5d6677;
+  --border: #dde1e8;
+  --accent: #3554d1;
+  --accent-text: #ffffff;
+  --ok-bg: #e7f6ec;
+  --ok-text: #1d6b3a;
+  --error-bg: #fdecec;
+  --error-text: #a12626;
+  --warn-bg: #fff4e0;
+  --warn-text: #8a5300;
+  --code-bg: #eef0f4;
+  --radius: 10px;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12151c;
+    --surface: #1b2029;
+    --text: #e6e9ef;
+    --muted: #9aa3b2;
+    --border: #2d3442;
+    --accent: #7b93ff;
+    --accent-text: #0e1220;
+    --ok-bg: #16301f;
+    --ok-text: #8fdca9;
+    --error-bg: #3a1a1a;
+    --error-text: #ffaaaa;
+    --warn-bg: #3a2c12;
+    --warn-text: #ffd28a;
+    --code-bg: #242a35;
+  }
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+
+header .inner,
+main {
+  max-width: 880px;
+  margin: 0 auto;
+  padding: 16px;
+}
+
+header .inner { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+header h1 { font-size: 1.1rem; margin: 0; }
+header a { color: var(--muted); font-size: 0.9rem; }
+
+main { display: grid; gap: 16px; }
+
+.grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); }
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 20px;
+}
+
+.card h2 { margin: 0 0 4px; font-size: 1.15rem; }
+.card p.hint { margin: 0 0 16px; color: var(--muted); font-size: 0.92rem; }
+
+form { display: grid; gap: 12px; }
+label { display: grid; gap: 4px; font-size: 0.9rem; color: var(--muted); }
+
+input {
+  font: inherit;
+  color: var(--text);
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  width: 100%;
+}
+
+input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+input.code {
+  font-family: var(--mono);
+  font-size: 1.6rem;
+  letter-spacing: 0.3em;
+  text-align: center;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 16px;
+  background: var(--accent);
+  color: var(--accent-text);
+  cursor: pointer;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--accent);
+  border: 1px solid var(--border);
+}
+
+button:disabled { opacity: 0.6; cursor: wait; }
+
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+.alert { border-radius: 8px; padding: 10px 12px; font-size: 0.95rem; }
+.alert:empty { display: none; }
+.alert.ok { background: var(--ok-bg); color: var(--ok-text); }
+.alert.error { background: var(--error-bg); color: var(--error-text); }
+.alert.warn { background: var(--warn-bg); color: var(--warn-text); }
+
+.qr { background: #fff; border-radius: 8px; padding: 8px; width: 220px; max-width: 100%; }
+
+code, .mono { font-family: var(--mono); }
+
+.secret {
+  font-family: var(--mono);
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 8px 10px;
+  word-break: break-all;
+}
+
+.backup-codes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 6px;
+  padding: 0;
+  list-style: none;
+  margin: 0;
+}
+
+.backup-codes li {
+  font-family: var(--mono);
+  background: var(--code-bg);
+  border-radius: 6px;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.tabs { display: flex; gap: 6px; }
+.tabs label {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  cursor: pointer;
+  color: var(--text);
+}
+.tabs input { display: none; }
+.tabs label:has(input:checked) { border-color: var(--accent); color: var(--accent); font-weight: 600; }
+
+dl.claims { display: grid; grid-template-columns: max-content 1fr; gap: 6px 16px; margin: 0; }
+dl.claims dt { color: var(--muted); }
+dl.claims dd { margin: 0; font-family: var(--mono); word-break: break-all; }
+
+[hidden] { display: none !important; }

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 2FA · Bóveda secreta</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <h1>Lab 2FA · Bóveda secreta</h1>
+      <a href="index.html">Cerrar sesión</a>
+    </div>
+  </header>
+
+  <main>
+    <div id="vault-msg" class="alert"></div>
+
+    <section id="vault" class="card" hidden>
+      <h2 id="welcome"></h2>
+      <p id="treasure" class="hint"></p>
+      <dl class="claims">
+        <dt>Ruta</dt><dd>GET /api/boveda-secreta</dd>
+        <dt>mfa_verified</dt><dd id="mfa-verified"></dd>
+        <dt>Método</dt><dd id="mfa-method"></dd>
+        <dt>Ventana TOTP</dt><dd id="window"></dd>
+        <dt>Expira en</dt><dd id="expires"></dd>
+      </dl>
+    </section>
+  </main>
+
+  <script type="module" src="js/vault.js"></script>
+</body>
+</html>

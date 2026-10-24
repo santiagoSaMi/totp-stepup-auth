@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 2FA · Iniciar sesión</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <h1>Lab 2FA · Step-Up Auth</h1>
+      <a href="http://127.0.0.1:4200" target="_blank" rel="noopener">Abrir Prefect UI ↗</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="grid">
+      <section class="card">
+        <h2>Iniciar sesión</h2>
+        <p class="hint">Paso 1: usuario y contraseña. Devuelve un <code>pre_auth_token</code> que solo sirve para el segundo factor.</p>
+        <form id="login-form">
+          <label>Usuario <input name="username" autocomplete="username" required></label>
+          <label>Contraseña <input name="password" type="password" autocomplete="current-password" required></label>
+          <button type="submit">Entrar</button>
+          <div id="login-msg" class="alert"></div>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Crear cuenta</h2>
+        <p class="hint">Usuario de 3 a 32 caracteres (a-z, 0-9, . _ -). Contraseña de al menos 8.</p>
+        <form id="register-form">
+          <label>Usuario <input name="username" autocomplete="username" required></label>
+          <label>Contraseña <input name="password" type="password" autocomplete="new-password" minlength="8" required></label>
+          <button type="submit" class="secondary">Registrarse</button>
+          <div id="register-msg" class="alert"></div>
+        </form>
+      </section>
+    </div>
+  </main>
+
+  <script type="module" src="js/login.js"></script>
+</body>
+</html>

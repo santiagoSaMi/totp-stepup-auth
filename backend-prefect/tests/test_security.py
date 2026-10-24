@@ -67,7 +67,7 @@ def _forge(payload: dict, secret: str | None = None) -> str:
 def test_expired_token_is_rejected():
     now = int(time.time())
     token = _forge(
-        {"sub": str(USER_ID), "scope": "pre_auth", "iss": tokens.ISSUER, "iat": now - 600, "exp": now - 1}
+        {"sub": str(USER_ID), "scope": "pre_auth", "iss": tokens.ISSUER, "jti": "x", "iat": now - 600, "exp": now - 1}
     )
     with pytest.raises(InvalidToken, match="expired"):
         tokens.decode_token(token, TokenScope.PRE_AUTH)
@@ -76,7 +76,7 @@ def test_expired_token_is_rejected():
 def test_token_signed_with_other_key_is_rejected():
     now = int(time.time())
     token = _forge(
-        {"sub": str(USER_ID), "scope": "access", "mfa_verified": True, "iss": tokens.ISSUER, "iat": now, "exp": now + 60},
+        {"sub": str(USER_ID), "scope": "access", "mfa_verified": True, "iss": tokens.ISSUER, "jti": "x", "iat": now, "exp": now + 60},
         secret="attacker-key-" + "y" * 40,
     )
     with pytest.raises(InvalidToken):
@@ -86,7 +86,7 @@ def test_token_signed_with_other_key_is_rejected():
 def test_unsigned_token_is_rejected():
     now = int(time.time())
     token = jwt.encode(
-        {"sub": str(USER_ID), "scope": "access", "mfa_verified": True, "iss": tokens.ISSUER, "iat": now, "exp": now + 60},
+        {"sub": str(USER_ID), "scope": "access", "mfa_verified": True, "iss": tokens.ISSUER, "jti": "x", "iat": now, "exp": now + 60},
         key=None,
         algorithm="none",
     )

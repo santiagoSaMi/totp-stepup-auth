@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 2FA · Activar 2FA</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <h1>Lab 2FA · Activar 2FA</h1>
+      <a href="index.html">Cerrar sesión</a>
+    </div>
+  </header>
+
+  <main>
+    <div id="page-msg" class="alert"></div>
+
+    <section id="enroll-section" class="card" hidden>
+      <h2>1. Escanea el código QR</h2>
+      <p class="hint">
+        Con tu app autenticadora (y, para la prueba de paridad, también con Google o Microsoft Authenticator).
+        Tu 2FA queda en <code>PENDING_VERIFICATION</code> hasta que confirmes un código.
+      </p>
+      <div class="grid">
+        <img id="qr" class="qr" alt="Código QR con el secreto TOTP">
+        <div>
+          <p class="hint">¿Sin cámara? Pega esta clave en la app:</p>
+          <div id="secret" class="secret"></div>
+          <div class="row" style="margin-top: 8px">
+            <button id="copy-secret" type="button" class="secondary">Copiar clave</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="activate-section" class="card" hidden>
+      <h2>2. Confirma con el primer código</h2>
+      <p class="hint">Escribe el código de 6 dígitos que muestra la app para pasar a <code>ACTIVE</code>.</p>
+      <form id="activate-form">
+        <input name="code" class="code" inputmode="numeric" autocomplete="one-time-code"
+               pattern="[0-9]{6}" maxlength="6" placeholder="000000" required>
+        <button type="submit">Activar 2FA</button>
+        <div id="activate-msg" class="alert"></div>
+      </form>
+    </section>
+
+    <section id="backup-section" class="card" hidden>
+      <h2>2FA activado</h2>
+      <p class="hint">
+        Guarda estos códigos de respaldo: cada uno sirve <strong>una sola vez</strong> si pierdes el teléfono.
+        No se volverán a mostrar.
+      </p>
+      <ul id="backup-codes" class="backup-codes"></ul>
+      <div class="row" style="margin-top: 16px">
+        <button id="copy-codes" type="button" class="secondary">Copiar códigos</button>
+        <button id="go-vault" type="button">Ir a la bóveda</button>
+      </div>
+    </section>
+  </main>
+
+  <script type="module" src="js/enroll.js"></script>
+</body>
+</html>

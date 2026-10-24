@@ -17,6 +17,7 @@ from app import repositories
 from app.config import get_settings
 from app.flows.errors import InvalidCredentials, InvalidPreAuthState, InvalidSecondFactor
 from app.mfa import backup_codes, totp
+from app.mfa.pre_auth_guard import PreAuthTokenAlreadyUsed, TooManyAttempts, pre_auth_guard
 from app.mfa.replay_cache import DEFAULT_TTL_SECONDS, ReplayAttackDetected, replay_cache
 from app.mfa.state import InvalidTransition, MFAEvent, MFAStatus, next_status
 from app.mfa.strategies.base import MFAMethod, VerificationResult
@@ -39,6 +40,14 @@ class AuthenticatedUser:
     user_id: UUID
     username: str
     mfa_status: MFAStatus
+    # Set once the user is identified by a pre_auth_token (not during login).
+    token_id: str | None = None
+    token_expires_at: int | None = None
+
+
+def _record_failure(user: AuthenticatedUser) -> None:
+    left = pre_auth_guard.record_failure(user.token_id, user.token_expires_at)
+    get_run_logger().warning("failed attempt for %r: %s left with this pre_auth_token", user.username, left)
 
 
 def mask(code: str) -> str:
@@ -93,6 +102,12 @@ def validate_pre_auth_state(
         logger.error("rejected pre_auth_token: %s", e)
         raise InvalidPreAuthState(str(e)) from e
 
+    try:
+        pre_auth_guard.check(claims.token_id)
+    except (TooManyAttempts, PreAuthTokenAlreadyUsed) as e:
+        logger.error("rejected pre_auth_token for %r: %s", claims.username, e)
+        raise
+
     status = repositories.mfa_repository().get_config(claims.user_id).status
     if status not in allowed_statuses:
         allowed = ", ".join(allowed_statuses)
@@ -105,7 +120,7 @@ def validate_pre_auth_state(
         status,
         claims.expires_at - int(time.time()),
     )
-    return AuthenticatedUser(claims.user_id, claims.username, status)
+    return AuthenticatedUser(claims.user_id, claims.username, status, claims.token_id, claims.expires_at)
 
 
 # --- Task 2 ---
@@ -122,6 +137,7 @@ def check_anti_replay_cache(user: AuthenticatedUser, code: SecretStr) -> None:
             user.username,
             DEFAULT_TTL_SECONDS,
         )
+        _record_failure(user)
         raise ReplayAttackDetected(user.user_id)
     logger.info("code %s not used by %r in the last %ss", mask(value), user.username, DEFAULT_TTL_SECONDS)
 
@@ -146,6 +162,7 @@ def execute_mfa_strategy(user: AuthenticatedUser, code: SecretStr, method: MFAMe
     result = strategy.verify(user.user_id, code.get_secret_value())
     if not result.success:
         logger.error("second factor rejected for %r: %s", user.username, result.detail)
+        _record_failure(user)
         raise InvalidSecondFactor(result.detail)
 
     _log_match(result)
@@ -164,6 +181,8 @@ def issue_elevated_session(user: AuthenticatedUser, code: SecretStr, method: MFA
     # between Task 2 and now.
     replay_cache.mark_used(user.user_id, code.get_secret_value())
     logger.info("code %s marked as used for %ss", mask(code.get_secret_value()), DEFAULT_TTL_SECONDS)
+    pre_auth_guard.consume(user.token_id, user.token_expires_at)
+    logger.info("pre_auth_token consumed (single use)")
 
     token = tokens.issue_access_token(user.user_id, user.username, method)
     logger.info(
@@ -206,6 +225,7 @@ def verify_enrollment_code(user: AuthenticatedUser, code: SecretStr) -> Verifica
     result = strategy.verify(user.user_id, code.get_secret_value())
     if not result.success:
         logger.error("first code from the app rejected for %r: %s", user.username, result.detail)
+        _record_failure(user)
         raise InvalidSecondFactor(result.detail)
 
     _log_match(result)

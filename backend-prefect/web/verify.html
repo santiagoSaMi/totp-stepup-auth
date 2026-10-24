@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lab 2FA · Segundo factor</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="inner">
+      <h1>Lab 2FA · Segundo factor</h1>
+      <a href="index.html">Cerrar sesión</a>
+    </div>
+  </header>
+
+  <main>
+    <section class="card">
+      <h2>Verificación en dos pasos</h2>
+      <p class="hint">Paso 2: envía el código junto con tu <code>pre_auth_token</code> para obtener el <code>access_token</code>.</p>
+      <form id="verify-form">
+        <div class="tabs">
+          <label><input type="radio" name="method" value="totp" checked> App autenticadora</label>
+          <label><input type="radio" name="method" value="backup"> Código de respaldo</label>
+        </div>
+        <input name="code" class="code" inputmode="numeric" autocomplete="one-time-code"
+               maxlength="6" placeholder="000000" required>
+        <button type="submit">Verificar</button>
+        <div id="verify-msg" class="alert"></div>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Prueba: ¿basta la contraseña?</h2>
+      <p class="hint">Intenta abrir <code>GET /api/boveda-secreta</code> usando solo el <code>pre_auth_token</code>.</p>
+      <div class="row">
+        <button id="try-vault" type="button" class="secondary">Intentar abrir la bóveda</button>
+      </div>
+      <div id="try-vault-msg" class="alert" style="margin-top: 12px"></div>
+    </section>
+  </main>
+
+  <script type="module" src="js/verify.js"></script>
+</body>
+</html>
