@@ -1,0 +1,7 @@
+Metadata-Version: 2.4
+Name: backend-prefect
+Version: 0.1.0
+Summary: Step-Up 2FA (TOTP) backend orchestrated with Prefect
+Requires-Python: >=3.12
+Provides-Extra: dev
+Requires-Dist: pytest>=8; extra == "dev"

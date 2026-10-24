@@ -1,0 +1,13 @@
+[project]
+name = "backend-prefect"
+version = "0.1.0"
+description = "Step-Up 2FA (TOTP) backend orchestrated with Prefect"
+requires-python = ">=3.12"
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
