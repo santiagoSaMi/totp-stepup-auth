@@ -3,7 +3,10 @@ name = "backend-prefect"
 version = "0.1.0"
 description = "Step-Up 2FA (TOTP) backend orchestrated with Prefect"
 requires-python = ">=3.12"
-dependencies = []
+dependencies = [
+    "psycopg[binary]>=3.2",
+    "python-dotenv>=1.0",
+]
 
 [project.optional-dependencies]
 dev = ["pytest>=8"]
