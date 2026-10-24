@@ -1,6 +1,6 @@
 """Data access for users, 2FA configs and backup codes (Supabase Postgres)."""
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from functools import lru_cache
 from uuid import UUID
 
@@ -10,6 +10,7 @@ from psycopg_pool import ConnectionPool
 
 from app.db import get_pool
 from app.mfa.state import MFAStatus
+from app.security.secret_box import decrypt_secret, encrypt_secret
 
 
 @dataclass(frozen=True)
@@ -23,7 +24,7 @@ class User:
 class MFAConfig:
     user_id: UUID
     status: MFAStatus
-    secret_base32: str | None
+    secret_base32: str | None = field(repr=False)  # decrypted; only ever held in memory
 
 
 class UsernameTaken(Exception):
@@ -53,7 +54,11 @@ class UserRepository:
 
 
 class MFARepository:
-    """2FA config and backup codes. Also implements the BackupCodeStore protocol."""
+    """2FA config and backup codes. Also implements the BackupCodeStore protocol.
+
+    TOTP secrets are encrypted here before they reach the database and
+    decrypted here when read; the rest of the code only sees the plain secret.
+    """
 
     def __init__(self, pool: ConnectionPool):
         self._pool = pool
@@ -61,11 +66,13 @@ class MFARepository:
     def get_config(self, user_id: UUID) -> MFAConfig:
         with self._pool.connection() as conn:
             row = conn.execute(
-                "select status, secret_base32 from mfa_configs where user_id = %s", (user_id,)
+                "select status, secret_encrypted from mfa_configs where user_id = %s", (user_id,)
             ).fetchone()
         if row is None:
             return MFAConfig(user_id, MFAStatus.DISABLED, None)
-        return MFAConfig(user_id, MFAStatus(row[0]), row[1])
+        status, encrypted = row
+        secret = decrypt_secret(encrypted, user_id) if encrypted else None
+        return MFAConfig(user_id, MFAStatus(status), secret)
 
     def active_secret(self, user_id: UUID) -> str | None:
         config = self.get_config(user_id)
@@ -80,16 +87,16 @@ class MFARepository:
         with self._pool.connection() as conn:
             row = conn.execute(
                 """
-                insert into mfa_configs (user_id, secret_base32, status)
+                insert into mfa_configs (user_id, secret_encrypted, status)
                 values (%s, %s, 'PENDING_VERIFICATION')
                 on conflict (user_id) do update
-                    set secret_base32 = excluded.secret_base32,
+                    set secret_encrypted = excluded.secret_encrypted,
                         status = excluded.status,
                         updated_at = now()
                     where mfa_configs.status <> 'ACTIVE'
                 returning user_id
                 """,
-                (user_id, secret_base32),
+                (user_id, encrypt_secret(secret_base32, user_id)),
             ).fetchone()
         return row is not None
 

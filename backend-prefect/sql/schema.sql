@@ -14,18 +14,23 @@ create table users (
 );
 
 -- One row per user once they start enrolling. No row means DISABLED.
+-- The TOTP secret can't be hashed (the server needs it to compute codes), so it
+-- is stored encrypted with AES-256-GCM by the backend: "v1:<nonce>:<ciphertext>".
+-- The key lives in the backend's .env, never in the database.
 create table mfa_configs (
-    user_id       uuid primary key references users (id) on delete cascade,
-    secret_base32 text,
-    status        mfa_status not null default 'DISABLED',
-    created_at    timestamptz not null default now(),
-    updated_at    timestamptz not null default now(),
-    activated_at  timestamptz,
+    user_id          uuid primary key references users (id) on delete cascade,
+    secret_encrypted text,
+    status           mfa_status not null default 'DISABLED',
+    created_at       timestamptz not null default now(),
+    updated_at       timestamptz not null default now(),
+    activated_at     timestamptz,
 
     constraint secret_required_when_enabled
-        check (status = 'DISABLED' or secret_base32 is not null),
+        check (status = 'DISABLED' or secret_encrypted is not null),
     constraint activated_at_when_active
-        check (status <> 'ACTIVE' or activated_at is not null)
+        check (status <> 'ACTIVE' or activated_at is not null),
+    constraint secret_is_encrypted
+        check (secret_encrypted is null or secret_encrypted like 'v1:%')
 );
 
 -- Single-use emergency codes. Only the SHA-256 hash is stored.
